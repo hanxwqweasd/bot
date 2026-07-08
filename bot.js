@@ -75,7 +75,7 @@ const KEYBOARD = {
 
 const ADMIN_KEYBOARD = {
   inline_keyboard: [
-    [{ text: "⚙️ Открыть Админ-панель", web_app: { url: `${GAME_URL}?startapp=admin` } }],
+    [{ text: "⚙️ Открыть Админ-панель", web_app: { url: GAME_URL, start_parameter: "admin" } }],
   ],
 };
 
