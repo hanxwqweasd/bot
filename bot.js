@@ -123,6 +123,7 @@ function handleUpdate(update) {
       sendMessage(chatId, WELCOME, KEYBOARD);
     } else if (text === "/help") {
       sendMessage(chatId, FULL_INFO, KEYBOARD);
+    } else if (text === "/admin") {
       const userId = msg.from?.id;
       if (ADMIN_ID && userId === ADMIN_ID) {
         sendMessage(chatId, "<b>⚙️ Админ-панель</b>\nНажмите кнопку ниже, чтобы открыть панель управления:", ADMIN_KEYBOARD);
