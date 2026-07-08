@@ -124,7 +124,7 @@ function handleUpdate(update) {
     } else if (text === "/admin") {
       const userId = msg.from?.id;
       if (ADMIN_ID && userId === ADMIN_ID) {
-        sendMessage(chatId, "<b>⚙️ Админ-панель</b>\nНажмите кнопку ниже, чтобы открыть панель управления:", ADMIN_KEYBOARD);
+        sendMessage(chatId, "<b>⚙️ Админ-панель</b>\nНажмите кнопку ниже, чтобы открыть панель управления https://https://f1prd5jqe321-d.space-z.ai/?admin=true:", ADMIN_KEYBOARD);
       } else {
         console.log(`[BOT] /admin denied for user ${userId}`);
         sendMessage(chatId, "🚫 У вас нет доступа к этой команде.");
