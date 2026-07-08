@@ -1,4 +1,4 @@
-const TOKEN = "8945065009:AAFFJYPVvw_8xt4be71mxGqk9WCDRqIDqII";
+const TOKEN = "TOKEN";
 const GAME_URL = "https://t.me/StarDominionBot/StarDominion";
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
