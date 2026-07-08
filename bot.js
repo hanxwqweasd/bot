@@ -1,58 +1,69 @@
-const TOKEN = "8945065009:AAFFJYPVvw_8xt4be71mxGqk9WCDRqIDqII";
-const GAME_URL = "https://t.me/StarDominionBot/StarDominion";
+// Zero-dependency Telegram bot using native fetch
+// Token и URL настраиваются через Variables в Railway
+
+const TOKEN = process.env.BOT_TOKEN;
+const GAME_URL = process.env.GAME_URL || "https://t.me/StarDominionBot/StarDominion";
+
+if (!TOKEN) {
+  console.error("[BOT] ❌ BOT_TOKEN not set! Add it in Railway Variables tab.");
+  process.exit(1);
+}
+
 const API = `https://api.telegram.org/bot${TOKEN}`;
 
-const WELCOME = `🚀 *STAR DOMINION*
+const WELCOME = `<b>🚀 STAR DOMINION</b>
 
-Добро пожаловать, Капитан\\!
-Вы назначены командиром заброшенной космической станции в секторе Андромеда\\-7\\.
+Добро пожаловать, Капитан!
+Вы назначены командиром заброшенной космической станции в секторе Андромеда-7.
 
 🏰 Стройте и развивайте станцию
 ⚗️ Исследуйте технологии
 🚀 Создавайте флот и побеждайте пиратов
-🗺️ Исследуйте карту сектора`;
+🗺️ Исследуйте карту сектора
 
-const FULL_INFO = `📖 *Полная информация — Star Dominion*
+Присоединяйтесь к тысячам капитанов, которые уже строят свою империю среди звёзд!`;
 
-🎮 *Об игре:*
-Star Dominion — это глубокая космическая стратегия и симулятор колонии\\. Управляйте космической станцией в загадочном секторе Андромеда\\-7\\.
+const FULL_INFO = `<b>📖 Полная информация — Star Dominion</b>
 
-🏗️ *Строительство:*
-• Стройте модули: Генераторы, Майнеры, Лаборатории, Верфи
+<b>🎮 Об игре:</b>
+Star Dominion — это глубокая космическая стратегия и симулятор колонии. Управляйте космической станцией в загадочном секторе Андромеда-7.
+
+<b>🏗️ Строительство:</b>
+• Стройте модули: Генераторы, Майнеры, Лаборатории, Верфи и другие
 • Улучшайте модули для увеличения эффективности
 • Управляйте комнатами станции
 
-🔬 *Исследования:*
-• 4 ветки технологий: Военная, Инженерная, Биологическая, Психо\\-Энергетическая
+<b>🔬 Исследования:</b>
+• 4 ветки технологий: Военная, Инженерная, Биологическая, Психо-Энергетическая
 • Открывайте новые модули и возможности
 
-🚀 *Флот:*
+<b>🚀 Флот:</b>
 • Стройте корабли разных классов
 • Создавайте эскадры
 • Сражайтесь с пиратами и другими игроками
 
-🗺️ *Карта сектора:*
-• Исследуйте узлы сектора Андромеда\\-7
+<b>🗺️ Карта сектора:</b>
+• Исследуйте узлы сектора Андромеда-7
 • Находите ресурсы и артефакты
 
-💰 *Ресурсы:*
+<b>💰 Ресурсы:</b>
 • ⚡ Энергия — питание станции
 • 🪨 Минералы — строительные материалы
-• 🧪 Биоматерия — для исследований
+• 🧪 Данные — для исследований
 • 💎 Кристаллы — премиум валюта
 
-🏆 *Профиль и Рейтинг:*
+<b>🏆 Профиль и Рейтинг:</b>
 • Отслеживайте свои достижения
 • Соревнуйтесь с другими капитанами
 
-👥 *Реферальная система:*
+<b>👥 Реферальная система:</b>
 • Приглашайте друзей и получайте бонусы
 
-❓ *Команды:*
+<b>❓ Команды:</b>
 /start — Начать игру
 /help — Справка
 
-Играйте прямо в Telegram\\!`;
+Играйте прямо в Telegram!`;
 
 const KEYBOARD = {
   inline_keyboard: [
@@ -65,7 +76,7 @@ const KEYBOARD = {
 
 let offset = 0;
 
-async function tgApi(method, body = {}) {
+async function api(method, body = {}) {
   const res = await fetch(`${API}/${method}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -74,57 +85,86 @@ async function tgApi(method, body = {}) {
   return res.json();
 }
 
-async function sendMd(chatId, text, kb) {
-  try {
-    await tgApi("sendMessage", { chat_id: chatId, text, parse_mode: "MarkdownV2", reply_markup: kb });
-  } catch {
-    const plain = text.replace(/[*_~`\\()!#\[\]{}|+.]/g, "");
-    await tgApi("sendMessage", { chat_id: chatId, text: plain, reply_markup: kb });
+async function sendMessage(chatId, text, keyboard) {
+  const result = await api("sendMessage", {
+    chat_id: chatId,
+    text,
+    parse_mode: "HTML",
+    reply_markup: keyboard,
+  });
+
+  if (!result.ok) {
+    console.error("[BOT] sendMessage failed:", result.description);
+    const plain = text.replace(/<[^>]+>/g, "");
+    await api("sendMessage", { chat_id: chatId, text: plain, reply_markup: keyboard });
   }
 }
 
-function handleUpdate(u) {
-  const msg = u.message;
-  const cbq = u.callback_query;
+async function answerCallback(callbackQueryId) {
+  await api("answerCallbackQuery", { callback_query_id: callbackQueryId });
+}
 
-  if (msg?.text) {
-    const cid = msg.chat.id;
-    if (msg.text === "/start" || msg.text.startsWith("/start ")) {
-      sendMd(cid, WELCOME, KEYBOARD);
-    } else if (msg.text === "/help") {
-      sendMd(cid, FULL_INFO, KEYBOARD);
+function handleUpdate(update) {
+  const msg = update.message;
+  const cbq = update.callback_query;
+
+  if (msg && msg.text) {
+    const chatId = msg.chat.id;
+    const text = msg.text;
+
+    if (text === "/start" || text === "/start StarDominion") {
+      sendMessage(chatId, WELCOME, KEYBOARD);
+    } else if (text === "/help") {
+      sendMessage(chatId, FULL_INFO, KEYBOARD);
     } else {
-      sendMd(cid, "🎮 Чтобы начать играть, нажмите кнопку ниже:", KEYBOARD);
+      sendMessage(chatId, "🎮 Чтобы начать играть, нажмите кнопку ниже:", KEYBOARD);
     }
   }
 
-  if (cbq?.data === "show_info" && cbq.message?.chat?.id) {
-    tgApi("answerCallbackQuery", { callback_query_id: cbq.id });
-    sendMd(cbq.message.chat.id, FULL_INFO, KEYBOARD);
+  if (cbq && cbq.data === "show_info") {
+    const chatId = cbq.message?.chat?.id;
+    if (chatId) {
+      answerCallback(cbq.id);
+      sendMessage(chatId, FULL_INFO, KEYBOARD);
+    }
   }
 
-  if (u.pre_checkout_query) {
-    tgApi("answerPreCheckoutQuery", { pre_checkout_query_id: u.pre_checkout_query.id, ok: true });
+  if (update.pre_checkout_query) {
+    const q = update.pre_checkout_query;
+    console.log(`[BOT] Pre-checkout: user=${q.from.id} payload=${q.invoice_payload} amount=${q.total_amount}`);
+    api("answerPreCheckoutQuery", { pre_checkout_query_id: q.id, ok: true });
   }
 
   if (msg?.successful_payment) {
-    sendMd(msg.chat.id, "✅ *Оплата прошла успешно\\!\n\nСпасибо, Капитан\\! Увидимся в секторе Андромеда\\-7\\! ⭐");
+    const p = msg.successful_payment;
+    console.log(`[BOT] Payment: user=${msg.from.id} payload=${p.invoice_payload} amount=${p.total_amount}`);
+    sendMessage(msg.chat.id,
+      `<b>✅ Оплата прошла успешно!</b>\n\nСпасибо за покупку, Капитан!\n\nStar Dominion продолжает развиваться благодаря вашей поддержке. Скоро увидимся в секторе Андромеда-7! ⭐`
+    );
   }
 }
 
 async function poll() {
   while (true) {
     try {
-      const r = await tgApi("getUpdates", { offset, timeout: 30 });
-      if (r.ok && r.result?.length) {
-        for (const u of r.result) { handleUpdate(u); offset = u.update_id + 1; }
+      const result = await api("getUpdates", { offset, timeout: 30 });
+      if (result.ok && result.result?.length > 0) {
+        for (const update of result.result) {
+          handleUpdate(update);
+          offset = update.update_id + 1;
+        }
       }
-    } catch (e) {
-      console.error("[POLL ERR]", e?.message || e);
-      await new Promise(r => setTimeout(r, 5000));
+    } catch (err) {
+      console.error("[BOT] Poll error:", err?.message || err);
+      await new Promise((r) => setTimeout(r, 5000));
     }
   }
 }
 
 console.log("[BOT] Star Dominion Bot starting...");
-poll().catch(e => { console.error("[FATAL]", e); process.exit(1); });
+console.log(`[BOT] Token: ${TOKEN.substring(0, 10)}...`);
+console.log(`[BOT] Game URL: ${GAME_URL}`);
+poll().catch((err) => {
+  console.error("[BOT] Fatal poll error:", err);
+  process.exit(1);
+});
