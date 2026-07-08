@@ -1,11 +1,12 @@
 // Zero-dependency Telegram bot using native fetch
-// Token и URL настраиваются через Variables в Railway
+// Token, Game URL, Admin ID — через Variables в Railway
 
 const TOKEN = process.env.BOT_TOKEN;
 const GAME_URL = process.env.GAME_URL || "https://t.me/StarDominionBot/StarDominion";
+const ADMIN_ID = parseInt(process.env.ADMIN_ID || "0", 10);
 
 if (!TOKEN) {
-  console.error("[BOT] ❌ BOT_TOKEN not set! Add it in Railway Variables tab.");
+  console.error("[BOT] BOT_TOKEN not set!");
   process.exit(1);
 }
 
@@ -74,6 +75,12 @@ const KEYBOARD = {
   ],
 };
 
+const ADMIN_KEYBOARD = {
+  inline_keyboard: [
+    [{ text: "⚙️ Открыть Админ-панель", web_app: { url: `${GAME_URL}?startapp=admin` } }],
+  ],
+};
+
 let offset = 0;
 
 async function api(method, body = {}) {
@@ -116,6 +123,13 @@ function handleUpdate(update) {
       sendMessage(chatId, WELCOME, KEYBOARD);
     } else if (text === "/help") {
       sendMessage(chatId, FULL_INFO, KEYBOARD);
+      const userId = msg.from?.id;
+      if (ADMIN_ID && userId === ADMIN_ID) {
+        sendMessage(chatId, "<b>⚙️ Админ-панель</b>\nНажмите кнопку ниже, чтобы открыть панель управления:", ADMIN_KEYBOARD);
+      } else {
+        console.log(`[BOT] /admin denied for user ${userId}`);
+        sendMessage(chatId, "🚫 У вас нет доступа к этой команде.");
+      }
     } else {
       sendMessage(chatId, "🎮 Чтобы начать играть, нажмите кнопку ниже:", KEYBOARD);
     }
@@ -129,12 +143,14 @@ function handleUpdate(update) {
     }
   }
 
+  // Handle pre_checkout_query
   if (update.pre_checkout_query) {
     const q = update.pre_checkout_query;
     console.log(`[BOT] Pre-checkout: user=${q.from.id} payload=${q.invoice_payload} amount=${q.total_amount}`);
     api("answerPreCheckoutQuery", { pre_checkout_query_id: q.id, ok: true });
   }
 
+  // Handle successful_payment
   if (msg?.successful_payment) {
     const p = msg.successful_payment;
     console.log(`[BOT] Payment: user=${msg.from.id} payload=${p.invoice_payload} amount=${p.total_amount}`);
@@ -164,6 +180,7 @@ async function poll() {
 console.log("[BOT] Star Dominion Bot starting...");
 console.log(`[BOT] Token: ${TOKEN.substring(0, 10)}...`);
 console.log(`[BOT] Game URL: ${GAME_URL}`);
+console.log(`[BOT] Admin ID: ${ADMIN_ID || "not set"}`);
 poll().catch((err) => {
   console.error("[BOT] Fatal poll error:", err);
   process.exit(1);
